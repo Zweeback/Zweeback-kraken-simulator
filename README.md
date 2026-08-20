@@ -1,5 +1,12 @@
 # Kraken Simulator
 
+## Current visual
+
+![Current visual status](docs/status/current.png)
+
+> Status evidence only: this repository does not yet contain a verified runnable screen.
+
+
 A physics-driven creature sandbox centered on a controllable kraken / octopus-like body interacting with ships, harbors and destructible environments.
 
 ## Product thesis
