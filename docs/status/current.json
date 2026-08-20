@@ -1,0 +1,8 @@
+{
+  "kind": "no-runnable-visual",
+  "project": "Kraken Simulator",
+  "stage": "PROTOTYPE",
+  "next_acceptance_gate": "Prove eight-tentacle control in one harbor with one ship",
+  "runtime_verified": false,
+  "accent": "#8b5cf6"
+}
