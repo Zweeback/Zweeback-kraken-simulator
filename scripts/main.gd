@@ -1,6 +1,7 @@
 extends Node3D
 
 const KrakenMotorClass = preload("res://scripts/motor/kraken_motor.gd")
+const ContactPlannerClass = preload("res://scripts/motor/contact_planner.gd")
 
 const TENTACLE_COUNT := 8
 const SEGMENTS_PER_TENTACLE := 7
@@ -8,31 +9,40 @@ const MOVE_SPEED := 7.0
 const BOOST_MULTIPLIER := 1.8
 const CAMERA_DISTANCE := 9.0
 const CAMERA_HEIGHT := 3.0
+const GRAPPLE_ACCEL := 26.0
+const GRAPPLE_MAX_SPEED := 18.0
 
 var kraken: Node3D
 var camera: Camera3D
 var hud_depth: Label
 var hud_speed: Label
 var hud_mode: Label
+var hud_contact: Label
 var tentacle_segments: Array = []
+var tentacle_bases: Array = []
 var motor: RefCounted
+var contact_planner: RefCounted
 var velocity := Vector3.ZERO
 var yaw := 0.0
 var pitch := -0.18
 var elapsed := 0.0
 var capture_frames := -1
+var capture_demo := false
 
 func _ready() -> void:
 	_build_world()
 	_build_kraken()
 	motor = KrakenMotorClass.new()
 	motor.setup(TENTACLE_COUNT)
+	contact_planner = ContactPlannerClass.new()
+	contact_planner.setup(TENTACLE_COUNT)
 	_build_camera()
 	_build_hud()
 	_ensure_input_map()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	if OS.has_environment("KRAKEN_CAPTURE"):
-		capture_frames = 15
+		capture_demo = true
+		capture_frames = 45
 
 func _process(delta: float) -> void:
 	elapsed += delta
@@ -95,6 +105,16 @@ func _build_world() -> void:
 	floor.material_override = _material(Color(0.055, 0.11, 0.105), 0.82, 0.0)
 	add_child(floor)
 
+	var floor_body := StaticBody3D.new()
+	floor_body.name = "SeafloorCollision"
+	floor_body.position = Vector3(0.0, -8.25, 0.0)
+	var floor_collision := CollisionShape3D.new()
+	var floor_shape := BoxShape3D.new()
+	floor_shape.size = Vector3(110.0, 0.5, 110.0)
+	floor_collision.shape = floor_shape
+	floor_body.add_child(floor_collision)
+	add_child(floor_body)
+
 	var surface := MeshInstance3D.new()
 	var surface_mesh := PlaneMesh.new()
 	surface_mesh.size = Vector2(120.0, 120.0)
@@ -127,15 +147,52 @@ func _build_scale_props() -> void:
 		add_child(rock)
 
 	for i in 6:
-		var pylon := MeshInstance3D.new()
-		var mesh := CylinderMesh.new()
-		mesh.top_radius = 0.6
-		mesh.bottom_radius = 0.8
-		mesh.height = 15.0
-		pylon.mesh = mesh
-		pylon.position = Vector3(-14.0 + i * 5.5, -1.0, -22.0)
-		pylon.material_override = _material(Color(0.18, 0.16, 0.12), 0.72, 0.05)
-		add_child(pylon)
+		_add_wrappable_pylon(Vector3(-14.0 + i * 5.5, -1.0, -22.0), 15.0, 0.75)
+
+	# Close traversal geometry for grapple / wrap testing.
+	_add_wrappable_pylon(Vector3(-3.2, -1.0, -7.2), 15.0, 0.65)
+	_add_wrappable_pylon(Vector3(3.0, -0.5, -8.6), 16.0, 0.75)
+	_add_wrappable_pylon(Vector3(0.0, 2.5, -11.5), 8.0, 0.55)
+
+	var beam_body := StaticBody3D.new()
+	beam_body.name = "TraversalBeam"
+	beam_body.position = Vector3(0.0, 4.5, -9.0)
+	beam_body.set_meta("wrap_radius", 0.55)
+	var beam_mesh := MeshInstance3D.new()
+	var beam_box := BoxMesh.new()
+	beam_box.size = Vector3(8.5, 0.75, 0.75)
+	beam_mesh.mesh = beam_box
+	beam_mesh.material_override = _material(Color(0.19, 0.17, 0.13), 0.68, 0.04)
+	beam_body.add_child(beam_mesh)
+	var beam_collision := CollisionShape3D.new()
+	var beam_shape := BoxShape3D.new()
+	beam_shape.size = Vector3(8.5, 0.75, 0.75)
+	beam_collision.shape = beam_shape
+	beam_body.add_child(beam_collision)
+	add_child(beam_body)
+
+func _add_wrappable_pylon(position: Vector3, height: float, radius: float) -> void:
+	var body := StaticBody3D.new()
+	body.name = "WrappablePylon"
+	body.position = position
+	body.set_meta("wrap_radius", radius)
+
+	var pylon := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius * 0.82
+	mesh.bottom_radius = radius
+	mesh.height = height
+	pylon.mesh = mesh
+	pylon.material_override = _material(Color(0.18, 0.16, 0.12), 0.72, 0.05)
+	body.add_child(pylon)
+
+	var collision := CollisionShape3D.new()
+	var shape := CylinderShape3D.new()
+	shape.radius = radius
+	shape.height = height
+	collision.shape = shape
+	body.add_child(collision)
+	add_child(body)
 
 func _build_kraken() -> void:
 	kraken = Node3D.new()
@@ -188,6 +245,7 @@ func _build_kraken() -> void:
 		parent.position = Vector3(cos(angle) * 0.75, -0.75, sin(angle) * 0.75)
 		parent.rotation.y = -angle
 		kraken.add_child(parent)
+		tentacle_bases.append(parent)
 
 		var current_parent := parent
 		for s in SEGMENTS_PER_TENTACLE:
@@ -241,8 +299,13 @@ func _build_hud() -> void:
 	hud_mode.add_theme_font_size_override("font_size", 14)
 	layer.add_child(hud_mode)
 
+	hud_contact = Label.new()
+	hud_contact.position = Vector2(24, 116)
+	hud_contact.add_theme_font_size_override("font_size", 14)
+	layer.add_child(hud_contact)
+
 	var controls := Label.new()
-	controls.text = "WASD swim   SPACE/CTRL vertical   SHIFT boost   C ghost   E hunt   MOUSE look"
+	controls.text = "WASD swim   SPACE/CTRL vertical   SHIFT boost   Q grapple   C ghost   E hunt   MOUSE look"
 	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	controls.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	controls.position = Vector2(-260, -42)
@@ -276,6 +339,15 @@ func _update_player(delta: float) -> void:
 
 	var target_velocity := move * speed
 	velocity = velocity.lerp(target_velocity, 1.0 - exp(-4.8 * delta))
+
+	var grapple_active: bool = Input.is_action_pressed("grapple") or capture_demo
+	if grapple_active and contact_planner.has_primary_contact():
+		var pull_vector: Vector3 = contact_planner.get_primary_point() - kraken.global_position
+		if pull_vector.length_squared() > 0.04:
+			velocity += pull_vector.normalized() * GRAPPLE_ACCEL * delta
+			if velocity.length() > GRAPPLE_MAX_SPEED:
+				velocity = velocity.normalized() * GRAPPLE_MAX_SPEED
+
 	kraken.position += velocity * delta
 	kraken.position.y = clamp(kraken.position.y, -5.8, 9.0)
 
@@ -288,12 +360,25 @@ func _update_player(delta: float) -> void:
 
 func _update_tentacles(delta: float) -> void:
 	var local_velocity: Vector3 = kraken.global_transform.basis.inverse() * velocity
+	var wants_hunt: bool = Input.is_action_pressed("hunt") or capture_demo
+	var wants_ghost: bool = Input.is_action_pressed("ghost")
+	var wants_grapple: bool = Input.is_action_pressed("grapple") or capture_demo
+	var aim_direction: Vector3 = -camera.global_transform.basis.z.normalized()
+
+	contact_planner.update(
+		get_world_3d(),
+		kraken.global_transform,
+		tentacle_bases,
+		aim_direction,
+		wants_hunt or wants_ghost or wants_grapple
+	)
+	motor.apply_contacts(contact_planner.payload())
 	motor.update(
 		delta,
 		local_velocity,
 		MOVE_SPEED * BOOST_MULTIPLIER,
-		Input.is_action_pressed("hunt"),
-		Input.is_action_pressed("ghost")
+		wants_hunt,
+		wants_ghost
 	)
 	for t in tentacle_segments.size():
 		var chain: Array = tentacle_segments[t]
@@ -313,6 +398,7 @@ func _update_hud() -> void:
 	hud_depth.text = "DEPTH  %+.1f m" % (-kraken.position.y)
 	hud_speed.text = "SPEED  %.1f m/s" % velocity.length()
 	hud_mode.text = "MOTOR  " + motor.intent_name()
+	hud_contact.text = "CONTACT  LOCK" if contact_planner.has_primary_contact() else "CONTACT  SCANNING"
 
 func _material(color: Color, roughness: float, metallic: float) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
@@ -329,6 +415,7 @@ func _ensure_input_map() -> void:
 	_register_key("ascend", KEY_SPACE)
 	_register_key("descend", KEY_CTRL)
 	_register_key("boost", KEY_SHIFT)
+	_register_key("grapple", KEY_Q)
 	_register_key("ghost", KEY_C)
 	_register_key("hunt", KEY_E)
 
