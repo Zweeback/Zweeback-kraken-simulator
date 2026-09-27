@@ -11,6 +11,7 @@ const CAMERA_DISTANCE := 9.0
 const CAMERA_HEIGHT := 3.0
 const GRAPPLE_ACCEL := 26.0
 const GRAPPLE_MAX_SPEED := 18.0
+const GRAPPLE_ORBIT_RADIUS := 2.45
 
 var kraken: Node3D
 var camera: Camera3D
@@ -344,8 +345,19 @@ func _update_player(delta: float) -> void:
 	var grapple_active: bool = Input.is_action_pressed("grapple") or capture_demo
 	if grapple_active and contact_planner.has_primary_contact():
 		var pull_vector: Vector3 = contact_planner.get_primary_point() - kraken.global_position
-		if pull_vector.length_squared() > 0.04:
-			velocity += pull_vector.normalized() * GRAPPLE_ACCEL * delta
+		var contact_distance: float = pull_vector.length()
+		if contact_distance > 0.2:
+			var pull_direction: Vector3 = pull_vector / contact_distance
+			var radial_error: float = contact_distance - GRAPPLE_ORBIT_RADIUS
+			var radial_accel: float = clampf(radial_error * 9.0, -GRAPPLE_ACCEL, GRAPPLE_ACCEL)
+			velocity += pull_direction * radial_accel * delta
+
+			# Near the anchor, kill only radial velocity. Tangential velocity remains,
+			# which turns a grapple into a swing and makes release a slingshot.
+			if absf(radial_error) < 0.75:
+				var radial_speed: float = velocity.dot(pull_direction)
+				velocity -= pull_direction * radial_speed * 0.42
+
 			if velocity.length() > GRAPPLE_MAX_SPEED:
 				velocity = velocity.normalized() * GRAPPLE_MAX_SPEED
 
