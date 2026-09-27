@@ -1,5 +1,7 @@
 extends Node3D
 
+const KrakenMotorClass = preload("res://scripts/motor/kraken_motor.gd")
+
 const TENTACLE_COUNT := 8
 const SEGMENTS_PER_TENTACLE := 7
 const MOVE_SPEED := 7.0
@@ -13,7 +15,7 @@ var hud_depth: Label
 var hud_speed: Label
 var hud_mode: Label
 var tentacle_segments: Array = []
-var motor: KrakenMotor
+var motor: RefCounted
 var velocity := Vector3.ZERO
 var yaw := 0.0
 var pitch := -0.18
@@ -23,7 +25,7 @@ var capture_frames := -1
 func _ready() -> void:
 	_build_world()
 	_build_kraken()
-	motor = KrakenMotor.new()
+	motor = KrakenMotorClass.new()
 	motor.setup(TENTACLE_COUNT)
 	_build_camera()
 	_build_hud()
