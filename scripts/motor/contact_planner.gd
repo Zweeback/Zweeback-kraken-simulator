@@ -86,15 +86,25 @@ func update(
 		sweep.collide_with_bodies = true
 
 		var motion_result: PackedFloat32Array = space.cast_motion(sweep)
-		if motion_result.is_empty() or motion_result[0] >= 1.0:
-			continue
 
-		var safe_fraction: float = clampf(motion_result[0], 0.0, 1.0)
-		var ray_end: Vector3 = origin.lerp(target, minf(1.0, safe_fraction + 0.08))
-		var ray := PhysicsRayQueryParameters3D.create(origin, ray_end, 1)
+		# Prefer a full intent ray. The sweep is used as a broad collision hint,
+		# not as a reason to deny a player-requested contact.
+		var ray := PhysicsRayQueryParameters3D.create(origin, target, 1)
 		ray.collide_with_areas = false
 		ray.collide_with_bodies = true
 		var hit: Dictionary = space.intersect_ray(ray)
+
+		# If the center ray misses but the swept volume reported a nearby hit,
+		# confirm around the sweep boundary. This approximates a capsule-cast
+		# while still yielding a concrete surface point and normal.
+		if hit.is_empty() and not motion_result.is_empty() and motion_result[0] < 1.0:
+			var safe_fraction: float = clampf(motion_result[0], 0.0, 1.0)
+			var sweep_ray_end: Vector3 = origin.lerp(target, minf(1.0, safe_fraction + 0.12))
+			var sweep_ray := PhysicsRayQueryParameters3D.create(origin, sweep_ray_end, 1)
+			sweep_ray.collide_with_areas = false
+			sweep_ray.collide_with_bodies = true
+			hit = space.intersect_ray(sweep_ray)
+
 		if hit.is_empty():
 			continue
 
