@@ -387,6 +387,36 @@ func _update_tentacles(delta: float) -> void:
 			var target_rotation: Vector3 = motor.sample_joint_rotation(t, s, chain.size())
 			joint.rotation = joint.rotation.lerp(target_rotation, 0.22)
 
+	_apply_tentacle_separation()
+
+func _apply_tentacle_separation() -> void:
+	const SAFE_DISTANCE: float = 0.34
+	const HARD_DISTANCE: float = 0.16
+	for arm_a in tentacle_segments.size():
+		var chain_a: Array = tentacle_segments[arm_a]
+		for arm_b in range(arm_a + 1, tentacle_segments.size()):
+			var chain_b: Array = tentacle_segments[arm_b]
+			var count: int = mini(chain_a.size(), chain_b.size())
+			for segment_index in range(1, count):
+				var joint_a: Node3D = chain_a[segment_index]
+				var joint_b: Node3D = chain_b[segment_index]
+				var distance: float = joint_a.global_position.distance_to(joint_b.global_position)
+				if distance >= SAFE_DISTANCE:
+					continue
+
+				var severity: float = 1.0 - clampf(distance / SAFE_DISTANCE, 0.0, 1.0)
+				var direction_sign: float = -1.0 if ((arm_a + arm_b) % 2 == 0) else 1.0
+				var correction: float = direction_sign * severity * 0.055
+				joint_a.rotation.z += correction
+				joint_b.rotation.z -= correction
+
+				if distance < HARD_DISTANCE:
+					# Presentation-level escape hatch: aggressively separate distal chains
+					# instead of allowing a visible knot to persist.
+					var hard_push: float = direction_sign * 0.045
+					joint_a.rotation.x += absf(hard_push)
+					joint_b.rotation.x -= absf(hard_push)
+
 func _update_camera(delta: float) -> void:
 	var yaw_basis := Basis(Vector3.UP, yaw)
 	var horizontal_back := yaw_basis * Vector3(0.0, 0.0, CAMERA_DISTANCE)
