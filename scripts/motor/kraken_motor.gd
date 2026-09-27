@@ -113,7 +113,7 @@ func _assign_roles() -> void:
 					state.extension = 0.62
 
 		if state.contact_active:
-			if state.contact_kind == "wrap":
+			if state.contact_kind == "wrap" and state.contact_distance < 2.35:
 				state.role = Role.WRAP
 				state.stiffness = 0.68
 				state.extension = 0.88
