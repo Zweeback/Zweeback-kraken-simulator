@@ -30,3 +30,19 @@ The tentacles are the game. Movement, grabbing, pulling, bracing, tearing, throw
 ## Technical direction
 
 Godot 4.7.1, desktop-first, Forward+ unless profiling proves otherwise. Keep physics authority separate from presentation and aggressively budget joint counts, collision shapes and destructible objects.
+
+## Visual target
+
+The presentation target is a **third-person 3D underwater creature game**, not a simulation dashboard. The player should see and directly control the kraken in a readable underwater space with strong depth, scale, motion and tactile creature materials.
+
+The first prototype on branch `visual/3d-creature-game` establishes:
+
+- third-person chase camera
+- free-swimming 3D movement
+- visible eight-tentacle creature silhouette
+- continuous tentacle motion
+- underwater lighting and fog
+- environmental scale props
+- minimal HUD overlay
+
+See [VISUAL_DIRECTION.md](VISUAL_DIRECTION.md) for the visual acceptance criteria and art-pass order.
