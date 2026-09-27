@@ -11,7 +11,7 @@ var kraken: Node3D
 var camera: Camera3D
 var hud_depth: Label
 var hud_speed: Label
-var tentacle_segments: Array[Array] = []
+var tentacle_segments: Array = []
 var velocity := Vector3.ZERO
 var yaw := 0.0
 var pitch := -0.18
@@ -301,7 +301,7 @@ func _ensure_input_map() -> void:
 	_register_key("descend", KEY_CTRL)
 	_register_key("boost", KEY_SHIFT)
 
-func _register_key(action: StringName, key: Key) -> void:
+func _register_key(action: StringName, key: int) -> void:
 	if not InputMap.has_action(action):
 		InputMap.add_action(action)
 	if InputMap.action_get_events(action).is_empty():
