@@ -145,6 +145,18 @@ func get_primary_point() -> Vector3:
 func get_primary_normal() -> Vector3:
 	return primary_normal
 
+func get_primary_distance() -> float:
+	if primary_index < 0:
+		return INF
+	var contact: Contact = contacts[primary_index]
+	return contact.distance
+
+func get_primary_kind() -> String:
+	if primary_index < 0:
+		return "none"
+	var contact: Contact = contacts[primary_index]
+	return contact.kind
+
 func payload() -> Array:
 	var data: Array = []
 	for item in contacts:
