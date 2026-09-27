@@ -23,7 +23,7 @@ func _ready() -> void:
 	_build_camera()
 	_build_hud()
 	_ensure_input_map()
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)\n\tif OS.has_environment("KRAKEN_CAPTURE"):\n\t\tcall_deferred("_capture_frame")
 
 func _process(delta: float) -> void:
 	elapsed += delta
@@ -308,3 +308,14 @@ func _register_key(action: StringName, key: int) -> void:
 		var event := InputEventKey.new()
 		event.physical_keycode = key
 		InputMap.action_add_event(action, event)
+
+
+func _capture_frame() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var image := get_viewport().get_texture().get_image()
+	var output := ProjectSettings.globalize_path("res://kraken_render.png")
+	var error := image.save_png(output)
+	print("KRAKEN_CAPTURE_PATH=", output, " ERROR=", error)
+	get_tree().quit()
