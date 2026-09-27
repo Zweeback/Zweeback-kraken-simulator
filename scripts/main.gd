@@ -11,7 +11,9 @@ var kraken: Node3D
 var camera: Camera3D
 var hud_depth: Label
 var hud_speed: Label
+var hud_mode: Label
 var tentacle_segments: Array = []
+var motor: KrakenMotor
 var velocity := Vector3.ZERO
 var yaw := 0.0
 var pitch := -0.18
@@ -21,6 +23,8 @@ var capture_frames := -1
 func _ready() -> void:
 	_build_world()
 	_build_kraken()
+	motor = KrakenMotor.new()
+	motor.setup(TENTACLE_COUNT)
 	_build_camera()
 	_build_hud()
 	_ensure_input_map()
@@ -31,7 +35,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	elapsed += delta
 	_update_player(delta)
-	_update_tentacles()
+	_update_tentacles(delta)
 	_update_camera(delta)
 	_update_hud()
 	if capture_frames >= 0:
@@ -230,8 +234,13 @@ func _build_hud() -> void:
 	hud_speed.add_theme_font_size_override("font_size", 14)
 	layer.add_child(hud_speed)
 
+	hud_mode = Label.new()
+	hud_mode.position = Vector2(24, 94)
+	hud_mode.add_theme_font_size_override("font_size", 14)
+	layer.add_child(hud_mode)
+
 	var controls := Label.new()
-	controls.text = "WASD swim   SPACE/CTRL vertical   SHIFT boost   MOUSE look"
+	controls.text = "WASD swim   SPACE/CTRL vertical   SHIFT boost   C ghost   E hunt   MOUSE look"
 	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	controls.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	controls.position = Vector2(-260, -42)
@@ -275,15 +284,21 @@ func _update_player(delta: float) -> void:
 	var bob := sin(elapsed * 1.7) * 0.035
 	kraken.position.y += bob * delta
 
-func _update_tentacles() -> void:
+func _update_tentacles(delta: float) -> void:
+	var local_velocity: Vector3 = kraken.global_transform.basis.inverse() * velocity
+	motor.update(
+		delta,
+		local_velocity,
+		MOVE_SPEED * BOOST_MULTIPLIER,
+		Input.is_action_pressed("hunt"),
+		Input.is_action_pressed("ghost")
+	)
 	for t in tentacle_segments.size():
 		var chain: Array = tentacle_segments[t]
 		for s in chain.size():
 			var joint: Node3D = chain[s]
-			var phase := elapsed * (1.45 + 0.045 * s) + float(t) * 0.82 + float(s) * 0.46
-			var swim_force: float = clampf(velocity.length() / (MOVE_SPEED * BOOST_MULTIPLIER), 0.0, 1.0)
-			joint.rotation.x = 0.13 + sin(phase) * (0.10 + 0.11 * swim_force)
-			joint.rotation.z = cos(phase * 0.83) * (0.12 + 0.085 * float(s) / float(SEGMENTS_PER_TENTACLE))
+			var target_rotation: Vector3 = motor.sample_joint_rotation(t, s, chain.size())
+			joint.rotation = joint.rotation.lerp(target_rotation, 0.22)
 
 func _update_camera(delta: float) -> void:
 	var yaw_basis := Basis(Vector3.UP, yaw)
@@ -295,6 +310,7 @@ func _update_camera(delta: float) -> void:
 func _update_hud() -> void:
 	hud_depth.text = "DEPTH  %+.1f m" % (-kraken.position.y)
 	hud_speed.text = "SPEED  %.1f m/s" % velocity.length()
+	hud_mode.text = "MOTOR  " + motor.intent_name()
 
 func _material(color: Color, roughness: float, metallic: float) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
@@ -311,6 +327,8 @@ func _ensure_input_map() -> void:
 	_register_key("ascend", KEY_SPACE)
 	_register_key("descend", KEY_CTRL)
 	_register_key("boost", KEY_SHIFT)
+	_register_key("ghost", KEY_C)
+	_register_key("hunt", KEY_E)
 
 func _register_key(action: StringName, key: int) -> void:
 	if not InputMap.has_action(action):
