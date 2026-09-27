@@ -420,6 +420,19 @@ func _update_tentacles(delta: float) -> void:
 			joint.rotation = joint.rotation.lerp(target_rotation, 0.22)
 
 	_apply_tentacle_separation()
+	_update_tentacle_meshes()
+
+func _update_tentacle_meshes() -> void:
+	for t in mini(tentacle_segments.size(), tentacle_visuals.size()):
+		var points := PackedVector3Array()
+		var base: Node3D = tentacle_bases[t]
+		points.append(kraken.to_local(base.global_position))
+		var chain: Array = tentacle_segments[t]
+		for joint_node in chain:
+			var joint: Node3D = joint_node
+			points.append(kraken.to_local(joint.global_position))
+		var tube: MeshInstance3D = tentacle_visuals[t]
+		tube.mesh = TentacleTubeClass.build(points, 0.24, 0.045, 10)
 
 func _apply_tentacle_separation() -> void:
 	const SAFE_DISTANCE: float = 0.34
@@ -450,11 +463,18 @@ func _apply_tentacle_separation() -> void:
 					joint_b.rotation.x -= absf(hard_push)
 
 func _update_camera(delta: float) -> void:
+	var speed_ratio: float = clampf(velocity.length() / GRAPPLE_MAX_SPEED, 0.0, 1.0)
 	var yaw_basis := Basis(Vector3.UP, yaw)
-	var horizontal_back := yaw_basis * Vector3(0.0, 0.0, CAMERA_DISTANCE)
-	var desired := kraken.global_position + horizontal_back + Vector3(0.0, CAMERA_HEIGHT + pitch * 4.0, 0.0)
-	camera.global_position = camera.global_position.lerp(desired, 1.0 - exp(-7.0 * delta))
-	camera.look_at(kraken.global_position + Vector3(0.0, 0.45, 0.0), Vector3.UP)
+	var dynamic_distance: float = lerpf(CAMERA_DISTANCE, CAMERA_DISTANCE + 1.0, speed_ratio)
+	var horizontal_back := yaw_basis * Vector3(0.0, 0.0, dynamic_distance)
+	var desired := kraken.global_position + horizontal_back + Vector3(0.0, CAMERA_HEIGHT + pitch * 2.8, 0.0)
+	camera.global_position = camera.global_position.lerp(desired, 1.0 - exp(-8.5 * delta))
+	camera.fov = lerpf(74.0, 82.0, speed_ratio)
+
+	var look_ahead := Vector3(0.0, -0.15, -1.8)
+	if velocity.length_squared() > 0.25:
+		look_ahead += velocity.normalized() * lerpf(0.8, 2.8, speed_ratio)
+	camera.look_at(kraken.global_position + look_ahead, Vector3.UP)
 
 func _update_hud() -> void:
 	hud_depth.text = "DEPTH  %+.1f m" % (-kraken.position.y)
@@ -467,6 +487,15 @@ func _material(color: Color, roughness: float, metallic: float) -> StandardMater
 	mat.albedo_color = color
 	mat.roughness = roughness
 	mat.metallic = metallic
+	return mat
+
+func _emissive_material(color: Color, energy: float) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.emission_enabled = true
+	mat.emission = color
+	mat.emission_energy_multiplier = energy
+	mat.roughness = 0.28
 	return mat
 
 func _ensure_input_map() -> void:
