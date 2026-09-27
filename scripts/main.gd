@@ -150,6 +150,7 @@ func _build_scale_props() -> void:
 		_add_wrappable_pylon(Vector3(-14.0 + i * 5.5, -1.0, -22.0), 15.0, 0.75)
 
 	# Close traversal geometry for grapple / wrap testing.
+	_add_wrappable_pylon(Vector3(0.0, -1.0, -5.8), 15.0, 0.62)
 	_add_wrappable_pylon(Vector3(-3.2, -1.0, -7.2), 15.0, 0.65)
 	_add_wrappable_pylon(Vector3(3.0, -0.5, -8.6), 16.0, 0.75)
 	_add_wrappable_pylon(Vector3(0.0, 2.5, -11.5), 8.0, 0.55)
