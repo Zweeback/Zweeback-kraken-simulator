@@ -1,0 +1,42 @@
+name: Render Kraken Screenshot
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - visual/3d-creature-game
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install runtime packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb unzip libgl1-mesa-dri libglx-mesa0 libegl1 libx11-6 libxcursor1 libxinerama1 libxi6 libxrandr2 libasound2t64
+
+      - name: Download Godot 4.7.1
+        run: |
+          wget -q https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          unzip -q Godot_v4.7.1-stable_linux.x86_64.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+
+      - name: Render real game frame
+        env:
+          KRAKEN_CAPTURE: "1"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          timeout 30s xvfb-run -a -s "-screen 0 1280x720x24" ./Godot_v4.7.1-stable_linux.x86_64 --verbose --path . --rendering-method gl_compatibility --audio-driver Dummy --quit-after 120
+          test -f kraken_render.png
+          file kraken_render.png
+
+      - name: Upload screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-render
+          path: kraken_render.png
+          if-no-files-found: error
