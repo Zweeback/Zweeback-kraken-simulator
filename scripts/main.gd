@@ -24,7 +24,9 @@ func _ready() -> void:
 	_build_camera()
 	_build_hud()
 	_ensure_input_map()
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)\n\tif OS.has_environment("KRAKEN_CAPTURE"):\n\t\tcall_deferred("_capture_frame")
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	if OS.has_environment("KRAKEN_CAPTURE"):
+		capture_frames = 15
 
 func _process(delta: float) -> void:
 	elapsed += delta
