@@ -30,7 +30,7 @@ jobs:
           KRAKEN_CAPTURE: "1"
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
-          xvfb-run -a -s "-screen 0 1280x720x24" ./Godot_v4.7.1-stable_linux.x86_64 --path . --rendering-method gl_compatibility --audio-driver Dummy
+          timeout 30s xvfb-run -a -s "-screen 0 1280x720x24" ./Godot_v4.7.1-stable_linux.x86_64 --verbose --path . --rendering-method gl_compatibility --audio-driver Dummy --quit-after 120
           test -f kraken_render.png
           file kraken_render.png
 
