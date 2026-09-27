@@ -6,6 +6,9 @@ static func build(points: PackedVector3Array, base_radius: float, tip_radius: fl
 	if points.size() < 2:
 		return mesh
 
+	var smooth_points := _catmull_resample(points, 3)
+	points = smooth_points
+
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
@@ -54,3 +57,28 @@ static func build(points: PackedVector3Array, base_radius: float, tip_radius: fl
 	arrays[Mesh.ARRAY_INDEX] = indices
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
+
+
+static func _catmull_resample(source: PackedVector3Array, subdivisions: int) -> PackedVector3Array:
+	if source.size() < 3 or subdivisions <= 1:
+		return source
+
+	var result := PackedVector3Array()
+	for i in range(source.size() - 1):
+		var p0: Vector3 = source[maxi(i - 1, 0)]
+		var p1: Vector3 = source[i]
+		var p2: Vector3 = source[i + 1]
+		var p3: Vector3 = source[mini(i + 2, source.size() - 1)]
+		for step in subdivisions:
+			var t: float = float(step) / float(subdivisions)
+			var t2: float = t * t
+			var t3: float = t2 * t
+			var point: Vector3 = 0.5 * (
+				(2.0 * p1)
+				+ (-p0 + p2) * t
+				+ (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2
+				+ (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3
+			)
+			result.append(point)
+	result.append(source[source.size() - 1])
+	return result
