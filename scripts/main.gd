@@ -2,13 +2,14 @@ extends Node3D
 
 const KrakenMotorClass = preload("res://scripts/motor/kraken_motor.gd")
 const ContactPlannerClass = preload("res://scripts/motor/contact_planner.gd")
+const TentacleTubeClass = preload("res://scripts/visual/tentacle_tube.gd")
 
 const TENTACLE_COUNT := 8
-const SEGMENTS_PER_TENTACLE := 7
+const SEGMENTS_PER_TENTACLE := 11
 const MOVE_SPEED := 7.0
 const BOOST_MULTIPLIER := 1.8
-const CAMERA_DISTANCE := 9.0
-const CAMERA_HEIGHT := 3.0
+const CAMERA_DISTANCE := 6.2
+const CAMERA_HEIGHT := 2.0
 const GRAPPLE_ACCEL := 26.0
 const GRAPPLE_MAX_SPEED := 18.0
 const GRAPPLE_ORBIT_RADIUS := 2.45
@@ -19,7 +20,9 @@ var hud_depth: Label
 var hud_speed: Label
 var hud_mode: Label
 var hud_contact: Label
+var controls_label: Label
 var tentacle_segments: Array = []
+var tentacle_visuals: Array = []
 var tentacle_bases: Array = []
 var motor: RefCounted
 var contact_planner: RefCounted
