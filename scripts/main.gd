@@ -16,6 +16,7 @@ var velocity := Vector3.ZERO
 var yaw := 0.0
 var pitch := -0.18
 var elapsed := 0.0
+var capture_frames := -1
 
 func _ready() -> void:
 	_build_world()
@@ -31,6 +32,14 @@ func _process(delta: float) -> void:
 	_update_tentacles()
 	_update_camera(delta)
 	_update_hud()
+	if capture_frames >= 0:
+		capture_frames -= 1
+		if capture_frames == 0:
+			var image := get_viewport().get_texture().get_image()
+			var output := ProjectSettings.globalize_path("res://kraken_render.png")
+			var error := image.save_png(output)
+			print("KRAKEN_CAPTURE_PATH=", output, " ERROR=", error)
+			get_tree().quit()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
@@ -309,13 +318,3 @@ func _register_key(action: StringName, key: int) -> void:
 		event.physical_keycode = key
 		InputMap.action_add_event(action, event)
 
-
-func _capture_frame() -> void:
-	await get_tree().process_frame
-	await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	var image := get_viewport().get_texture().get_image()
-	var output := ProjectSettings.globalize_path("res://kraken_render.png")
-	var error := image.save_png(output)
-	print("KRAKEN_CAPTURE_PATH=", output, " ERROR=", error)
-	get_tree().quit()
