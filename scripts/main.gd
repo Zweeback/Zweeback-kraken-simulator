@@ -281,7 +281,7 @@ func _update_tentacles() -> void:
 		for s in chain.size():
 			var joint: Node3D = chain[s]
 			var phase := elapsed * (1.45 + 0.045 * s) + float(t) * 0.82 + float(s) * 0.46
-			var swim_force := clamp(velocity.length() / (MOVE_SPEED * BOOST_MULTIPLIER), 0.0, 1.0)
+			var swim_force: float = clampf(velocity.length() / (MOVE_SPEED * BOOST_MULTIPLIER), 0.0, 1.0)
 			joint.rotation.x = 0.13 + sin(phase) * (0.10 + 0.11 * swim_force)
 			joint.rotation.z = cos(phase * 0.83) * (0.12 + 0.085 * float(s) / float(SEGMENTS_PER_TENTACLE))
 
