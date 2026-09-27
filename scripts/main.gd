@@ -207,22 +207,33 @@ func _build_kraken() -> void:
 
 	var body := MeshInstance3D.new()
 	var body_mesh := SphereMesh.new()
-	body_mesh.radius = 1.5
-	body_mesh.height = 2.5
+	body_mesh.radius = 1.35
+	body_mesh.height = 2.3
 	body.mesh = body_mesh
-	body.scale = Vector3(1.15, 1.0, 1.28)
-	body.material_override = _material(Color(0.42, 0.10, 0.56), 0.24, 0.12)
+	body.position = Vector3(0.0, -0.10, -0.28)
+	body.scale = Vector3(1.22, 0.72, 1.22)
+	body.material_override = _material(Color(0.22, 0.045, 0.31), 0.42, 0.03)
 	kraken.add_child(body)
 
 	var mantle := MeshInstance3D.new()
 	var mantle_mesh := SphereMesh.new()
-	mantle_mesh.radius = 1.1
-	mantle_mesh.height = 2.0
+	mantle_mesh.radius = 1.30
+	mantle_mesh.height = 2.5
 	mantle.mesh = mantle_mesh
-	mantle.position = Vector3(0.0, 1.05, 0.15)
-	mantle.scale = Vector3(0.9, 1.25, 0.95)
-	mantle.material_override = _material(Color(0.52, 0.15, 0.66), 0.20, 0.10)
+	mantle.position = Vector3(0.0, 0.56, 1.02)
+	mantle.scale = Vector3(0.82, 0.90, 1.38)
+	mantle.material_override = _material(Color(0.31, 0.07, 0.40), 0.38, 0.025)
 	kraken.add_child(mantle)
+
+	var shoulder := MeshInstance3D.new()
+	var shoulder_mesh := SphereMesh.new()
+	shoulder_mesh.radius = 1.18
+	shoulder_mesh.height = 2.0
+	shoulder.mesh = shoulder_mesh
+	shoulder.position = Vector3(0.0, -0.38, -0.76)
+	shoulder.scale = Vector3(1.45, 0.40, 1.02)
+	shoulder.material_override = _material(Color(0.18, 0.035, 0.27), 0.50, 0.02)
+	kraken.add_child(shoulder)
 
 	for side in [-1.0, 1.0]:
 		var eye := MeshInstance3D.new()
@@ -230,8 +241,9 @@ func _build_kraken() -> void:
 		eye_mesh.radius = 0.18
 		eye_mesh.height = 0.36
 		eye.mesh = eye_mesh
-		eye.position = Vector3(0.55 * side, 0.55, -1.18)
-		eye.material_override = _material(Color(0.88, 0.91, 0.72), 0.18, 0.0)
+		eye.position = Vector3(0.72 * side, 0.25, -1.24)
+		eye.scale = Vector3(1.05, 0.72, 0.72)
+		eye.material_override = _emissive_material(Color(0.20, 0.78, 0.88), 1.6)
 		kraken.add_child(eye)
 
 		var pupil := MeshInstance3D.new()
@@ -239,7 +251,8 @@ func _build_kraken() -> void:
 		pupil_mesh.radius = 0.08
 		pupil_mesh.height = 0.16
 		pupil.mesh = pupil_mesh
-		pupil.position = Vector3(0.55 * side, 0.55, -1.34)
+		pupil.position = Vector3(0.72 * side, 0.25, -1.39)
+		pupil.scale = Vector3(0.48, 1.0, 0.48)
 		pupil.material_override = _material(Color(0.02, 0.015, 0.025), 0.1, 0.0)
 		kraken.add_child(pupil)
 
