@@ -174,3 +174,23 @@ The movement feature is working when a player can perform a chain like:
 swim -> underside grapple -> pull -> corner wrap -> swing -> silent grab -> release -> jet back into water
 
 without ever thinking about which arm is doing which sub-action.
+
+
+## Implemented in motor-system v1
+
+The current branch now includes a first end-to-end traversal loop:
+
+- autonomous FLOW / HUNT / GHOST arm-role assignment;
+- world-aware contact scanning;
+- assisted full-ray contacts with swept-volume fallback;
+- per-arm search lanes and contact-point reservation;
+- wrappable world geometry;
+- distance-aware REACH -> WRAP / GRIP sequencing;
+- momentum-preserving grapple pull;
+- near-anchor radial damping while tangential velocity is preserved for swinging;
+- slingshot release by simply letting go of grapple;
+- soft arm-arm separation;
+- hard tangle escape for severe interpenetration;
+- CI-rendered Godot runtime validation.
+
+This remains a prototype controller. The next major step is true endpoint IK / suction contact anchoring so a selected arm visibly terminates at the solved world-space contact rather than only steering its procedural joint chain toward it.
