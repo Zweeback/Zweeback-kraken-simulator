@@ -64,10 +64,12 @@ func update(
 
 		var side: float = -1.0 if index % 2 == 0 else 1.0
 		var ring: float = (float(index) / float(maxi(contacts.size(), 1))) * TAU
+		var centered_index: float = float(index) - (float(maxi(contacts.size(), 1)) - 1.0) * 0.5
+		var fan: float = centered_index / maxf((float(maxi(contacts.size(), 1)) - 1.0) * 0.5, 1.0)
 		var lane_direction: Vector3 = (
 			direction
-			+ body_transform.basis.x * side * LANE_ANGLE
-			+ body_transform.basis.y * sin(ring) * 0.055
+			+ body_transform.basis.x * (fan * 0.34 + side * LANE_ANGLE)
+			+ body_transform.basis.y * sin(ring) * 0.085
 		).normalized()
 
 		var origin: Vector3 = base_node.global_position
