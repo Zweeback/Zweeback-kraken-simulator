@@ -74,14 +74,14 @@ func _build_world() -> void:
 	var environment_node := WorldEnvironment.new()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.015, 0.075, 0.11)
+	env.background_color = Color(0.006, 0.028, 0.045)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.12, 0.32, 0.38)
-	env.ambient_light_energy = 0.9
+	env.ambient_light_color = Color(0.055, 0.19, 0.25)
+	env.ambient_light_energy = 0.72
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.06, 0.24, 0.30)
-	env.fog_light_energy = 0.75
-	env.fog_density = 0.018
+	env.fog_light_color = Color(0.025, 0.16, 0.22)
+	env.fog_light_energy = 0.95
+	env.fog_density = 0.026
 	env.fog_height = 8.0
 	env.fog_height_density = 0.08
 	environment_node.environment = env
@@ -89,24 +89,31 @@ func _build_world() -> void:
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-58.0, -25.0, 0.0)
-	sun.light_color = Color(0.58, 0.86, 0.95)
-	sun.light_energy = 1.4
+	sun.light_color = Color(0.40, 0.76, 0.92)
+	sun.light_energy = 1.8
 	sun.shadow_enabled = true
 	add_child(sun)
 
 	var fill := OmniLight3D.new()
-	fill.position = Vector3(0.0, 7.0, 0.0)
-	fill.light_color = Color(0.10, 0.62, 0.72)
-	fill.light_energy = 4.0
-	fill.omni_range = 28.0
+	fill.position = Vector3(-2.0, 5.5, -7.0)
+	fill.light_color = Color(0.04, 0.48, 0.68)
+	fill.light_energy = 7.0
+	fill.omni_range = 24.0
 	add_child(fill)
+
+	var rim := OmniLight3D.new()
+	rim.position = Vector3(5.5, 0.5, 1.5)
+	rim.light_color = Color(0.34, 0.05, 0.50)
+	rim.light_energy = 5.2
+	rim.omni_range = 14.0
+	add_child(rim)
 
 	var floor := MeshInstance3D.new()
 	var floor_mesh := PlaneMesh.new()
 	floor_mesh.size = Vector2(110.0, 110.0)
 	floor.mesh = floor_mesh
 	floor.position.y = -8.0
-	floor.material_override = _material(Color(0.055, 0.11, 0.105), 0.82, 0.0)
+	floor.material_override = _material(Color(0.025, 0.060, 0.065), 0.94, 0.0)
 	add_child(floor)
 
 	var floor_body := StaticBody3D.new()
@@ -139,42 +146,80 @@ func _build_world() -> void:
 func _build_scale_props() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 77331
-	for i in 18:
+
+	# Low, irregular seabed silhouettes: depth cues without clutter.
+	for i in 12:
 		var rock := MeshInstance3D.new()
 		var mesh := SphereMesh.new()
-		mesh.radius = rng.randf_range(0.7, 2.5)
-		mesh.height = mesh.radius * rng.randf_range(1.1, 2.0)
+		mesh.radius = rng.randf_range(0.8, 2.6)
+		mesh.height = mesh.radius * rng.randf_range(1.0, 1.6)
 		rock.mesh = mesh
-		rock.scale = Vector3(rng.randf_range(0.8, 1.8), rng.randf_range(0.45, 1.1), rng.randf_range(0.8, 1.8))
-		rock.position = Vector3(rng.randf_range(-35.0, 35.0), -7.2, rng.randf_range(-35.0, 35.0))
-		rock.material_override = _material(Color(0.075, 0.12, 0.115), 0.92, 0.0)
+		rock.scale = Vector3(rng.randf_range(0.9, 2.1), rng.randf_range(0.28, 0.64), rng.randf_range(0.8, 1.7))
+		rock.position = Vector3(rng.randf_range(-18.0, 18.0), -7.15, rng.randf_range(-31.0, 4.0))
+		rock.rotation.y = rng.randf_range(-PI, PI)
+		rock.material_override = _material(Color(0.025, 0.055, 0.060), 0.97, 0.0)
 		add_child(rock)
 
-	for i in 6:
-		_add_wrappable_pylon(Vector3(-14.0 + i * 5.5, -1.0, -22.0), 15.0, 0.75)
+	# Hero traversal line.
+	_add_wrappable_pylon(Vector3(0.0, -0.8, -8.4), 15.0, 0.62)
+	for x in [-6.8, -2.4, 2.4, 6.8]:
+		_add_wrappable_pylon(Vector3(x, -0.8, -15.0), 15.0, 0.54)
+		_add_wrappable_pylon(Vector3(x, -0.8, -23.0), 15.0, 0.58)
 
-	# Close traversal geometry for grapple / wrap testing.
-	_add_wrappable_pylon(Vector3(0.0, -1.0, -5.8), 15.0, 0.62)
-	_add_wrappable_pylon(Vector3(-3.2, -1.0, -7.2), 15.0, 0.65)
-	_add_wrappable_pylon(Vector3(3.0, -0.5, -8.6), 16.0, 0.75)
-	_add_wrappable_pylon(Vector3(0.0, 2.5, -11.5), 8.0, 0.55)
+	var pier := StaticBody3D.new()
+	pier.name = "PierDeck"
+	pier.position = Vector3(0.0, 6.2, -19.0)
+	var pier_mesh := MeshInstance3D.new()
+	var pier_box := BoxMesh.new()
+	pier_box.size = Vector3(17.0, 0.8, 20.0)
+	pier_mesh.mesh = pier_box
+	pier_mesh.material_override = _material(Color(0.095, 0.080, 0.060), 0.78, 0.03)
+	pier.add_child(pier_mesh)
+	var pier_collision := CollisionShape3D.new()
+	var pier_shape := BoxShape3D.new()
+	pier_shape.size = Vector3(17.0, 0.8, 20.0)
+	pier_collision.shape = pier_shape
+	pier.add_child(pier_collision)
+	add_child(pier)
 
-	var beam_body := StaticBody3D.new()
-	beam_body.name = "TraversalBeam"
-	beam_body.position = Vector3(0.0, 4.5, -9.0)
-	beam_body.set_meta("wrap_radius", 0.55)
-	var beam_mesh := MeshInstance3D.new()
-	var beam_box := BoxMesh.new()
-	beam_box.size = Vector3(8.5, 0.75, 0.75)
-	beam_mesh.mesh = beam_box
-	beam_mesh.material_override = _material(Color(0.19, 0.17, 0.13), 0.68, 0.04)
-	beam_body.add_child(beam_mesh)
-	var beam_collision := CollisionShape3D.new()
-	var beam_shape := BoxShape3D.new()
-	beam_shape.size = Vector3(8.5, 0.75, 0.75)
-	beam_collision.shape = beam_shape
-	beam_body.add_child(beam_collision)
-	add_child(beam_body)
+	# Ship-like objective silhouette beyond the pier.
+	var hull := MeshInstance3D.new()
+	var hull_mesh := SphereMesh.new()
+	hull_mesh.radius = 2.0
+	hull_mesh.height = 4.0
+	hull.mesh = hull_mesh
+	hull.position = Vector3(10.5, -1.0, -31.0)
+	hull.scale = Vector3(2.7, 0.82, 5.4)
+	hull.rotation.z = deg_to_rad(-4.0)
+	hull.material_override = _material(Color(0.055, 0.075, 0.085), 0.52, 0.20)
+	add_child(hull)
+
+	var deck := MeshInstance3D.new()
+	var deck_mesh := BoxMesh.new()
+	deck_mesh.size = Vector3(7.0, 1.1, 10.5)
+	deck.mesh = deck_mesh
+	deck.position = Vector3(10.5, 1.0, -31.0)
+	deck.material_override = _material(Color(0.10, 0.12, 0.12), 0.62, 0.12)
+	add_child(deck)
+
+	var cabin := MeshInstance3D.new()
+	var cabin_mesh := BoxMesh.new()
+	cabin_mesh.size = Vector3(4.2, 2.4, 4.2)
+	cabin.mesh = cabin_mesh
+	cabin.position = Vector3(10.5, 2.55, -32.0)
+	cabin.material_override = _material(Color(0.12, 0.15, 0.15), 0.54, 0.10)
+	add_child(cabin)
+
+	# Tiny suspended lights/particles give scale and depth in the capture.
+	for i in 18:
+		var mote := MeshInstance3D.new()
+		var mote_mesh := SphereMesh.new()
+		mote_mesh.radius = rng.randf_range(0.025, 0.065)
+		mote_mesh.height = mote_mesh.radius * 2.0
+		mote.mesh = mote_mesh
+		mote.position = Vector3(rng.randf_range(-11.0, 11.0), rng.randf_range(-4.5, 7.0), rng.randf_range(-29.0, -4.0))
+		mote.material_override = _emissive_material(Color(0.02, 0.38, 0.60), rng.randf_range(1.2, 2.4))
+		add_child(mote)
 
 func _add_wrappable_pylon(position: Vector3, height: float, radius: float) -> void:
 	var body := StaticBody3D.new()
