@@ -161,7 +161,7 @@ func _build_scale_props() -> void:
 		add_child(rock)
 
 	# Hero traversal line.
-	_add_wrappable_pylon(Vector3(0.0, -0.8, -8.4), 15.0, 0.62)
+	_add_wrappable_pylon(Vector3(-3.4, -0.8, -9.5), 15.0, 0.62)
 	for x in [-6.8, -2.4, 2.4, 6.8]:
 		_add_wrappable_pylon(Vector3(x, -0.8, -15.0), 15.0, 0.54)
 		_add_wrappable_pylon(Vector3(x, -0.8, -23.0), 15.0, 0.58)
@@ -247,7 +247,7 @@ func _add_wrappable_pylon(position: Vector3, height: float, radius: float) -> vo
 func _build_kraken() -> void:
 	kraken = Node3D.new()
 	kraken.name = "Kraken"
-	kraken.position = Vector3(0.0, 0.5, 0.0)
+	kraken.position = Vector3(0.0, 0.2, 2.0)
 	add_child(kraken)
 
 	var body := MeshInstance3D.new()
@@ -256,7 +256,7 @@ func _build_kraken() -> void:
 	body_mesh.height = 2.3
 	body.mesh = body_mesh
 	body.position = Vector3(0.0, -0.10, -0.28)
-	body.scale = Vector3(1.22, 0.72, 1.22)
+	body.scale = Vector3(1.08, 0.54, 1.02)
 	body.material_override = _material(Color(0.22, 0.045, 0.31), 0.42, 0.03)
 	kraken.add_child(body)
 
@@ -265,8 +265,8 @@ func _build_kraken() -> void:
 	mantle_mesh.radius = 1.30
 	mantle_mesh.height = 2.5
 	mantle.mesh = mantle_mesh
-	mantle.position = Vector3(0.0, 0.56, 1.02)
-	mantle.scale = Vector3(0.82, 0.90, 1.38)
+	mantle.position = Vector3(0.0, 0.42, 0.78)
+	mantle.scale = Vector3(0.74, 0.62, 1.12)
 	mantle.material_override = _material(Color(0.31, 0.07, 0.40), 0.38, 0.025)
 	kraken.add_child(mantle)
 
@@ -275,8 +275,8 @@ func _build_kraken() -> void:
 	shoulder_mesh.radius = 1.18
 	shoulder_mesh.height = 2.0
 	shoulder.mesh = shoulder_mesh
-	shoulder.position = Vector3(0.0, -0.38, -0.76)
-	shoulder.scale = Vector3(1.45, 0.40, 1.02)
+	shoulder.position = Vector3(0.0, -0.34, -0.70)
+	shoulder.scale = Vector3(1.30, 0.34, 0.95)
 	shoulder.material_override = _material(Color(0.18, 0.035, 0.27), 0.50, 0.02)
 	kraken.add_child(shoulder)
 
@@ -403,10 +403,14 @@ func _update_player(delta: float) -> void:
 	if Input.is_action_pressed("boost"):
 		speed *= BOOST_MULTIPLIER
 
+	if capture_demo and move.length_squared() < 0.01:
+		move = Vector3(0.0, -0.03, -1.0).normalized()
+		speed = MOVE_SPEED * 1.15
+
 	var target_velocity := move * speed
 	velocity = velocity.lerp(target_velocity, 1.0 - exp(-4.8 * delta))
 
-	var grapple_active: bool = Input.is_action_pressed("grapple") or capture_demo
+	var grapple_active: bool = Input.is_action_pressed("grapple")
 	if grapple_active and contact_planner.has_primary_contact():
 		var pull_vector: Vector3 = contact_planner.get_primary_point() - kraken.global_position
 		var contact_distance: float = pull_vector.length()
@@ -439,7 +443,7 @@ func _update_tentacles(delta: float) -> void:
 	var local_velocity: Vector3 = kraken.global_transform.basis.inverse() * velocity
 	var wants_hunt: bool = Input.is_action_pressed("hunt") or capture_demo
 	var wants_ghost: bool = Input.is_action_pressed("ghost")
-	var wants_grapple: bool = Input.is_action_pressed("grapple") or capture_demo
+	var wants_grapple: bool = Input.is_action_pressed("grapple")
 	var aim_direction: Vector3 = -camera.global_transform.basis.z.normalized()
 
 	contact_planner.update(
@@ -477,7 +481,7 @@ func _update_tentacle_meshes() -> void:
 			var joint: Node3D = joint_node
 			points.append(kraken.to_local(joint.global_position))
 		var tube: MeshInstance3D = tentacle_visuals[t]
-		tube.mesh = TentacleTubeClass.build(points, 0.24, 0.045, 10)
+		tube.mesh = TentacleTubeClass.build(points, 0.31, 0.065, 11)
 
 func _apply_tentacle_separation() -> void:
 	const SAFE_DISTANCE: float = 0.34
@@ -510,16 +514,16 @@ func _apply_tentacle_separation() -> void:
 func _update_camera(delta: float) -> void:
 	var speed_ratio: float = clampf(velocity.length() / GRAPPLE_MAX_SPEED, 0.0, 1.0)
 	var yaw_basis := Basis(Vector3.UP, yaw)
-	var dynamic_distance: float = lerpf(CAMERA_DISTANCE, CAMERA_DISTANCE + 1.0, speed_ratio)
+	var dynamic_distance: float = lerpf(CAMERA_DISTANCE + 0.8, CAMERA_DISTANCE + 1.8, speed_ratio)
 	var horizontal_back := yaw_basis * Vector3(0.0, 0.0, dynamic_distance)
-	var desired := kraken.global_position + horizontal_back + Vector3(0.0, CAMERA_HEIGHT + pitch * 2.8, 0.0)
+	var side_offset := yaw_basis * Vector3(0.85, 0.0, 0.0)
+	var desired := kraken.global_position + horizontal_back + side_offset + Vector3(0.0, CAMERA_HEIGHT + 0.75 + pitch * 2.4, 0.0)
 	camera.global_position = camera.global_position.lerp(desired, 1.0 - exp(-8.5 * delta))
-	camera.fov = lerpf(74.0, 82.0, speed_ratio)
+	camera.fov = lerpf(72.0, 80.0, speed_ratio)
 
-	var look_ahead := Vector3(0.0, -0.15, -1.8)
-	if velocity.length_squared() > 0.25:
-		look_ahead += velocity.normalized() * lerpf(0.8, 2.8, speed_ratio)
-	camera.look_at(kraken.global_position + look_ahead, Vector3.UP)
+	var forward := -kraken.global_transform.basis.z.normalized()
+	var look_target := kraken.global_position + forward * lerpf(2.6, 4.5, speed_ratio) + Vector3(0.0, -0.35, 0.0)
+	camera.look_at(look_target, Vector3.UP)
 
 func _update_hud() -> void:
 	hud_depth.text = "DEPTH  %+.1f m" % (-kraken.position.y)
