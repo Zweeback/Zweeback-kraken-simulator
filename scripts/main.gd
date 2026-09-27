@@ -258,37 +258,39 @@ func _build_kraken() -> void:
 
 	for t in TENTACLE_COUNT:
 		var chain: Array = []
-		var angle := TAU * float(t) / float(TENTACLE_COUNT)
+		var fan_t: float = float(t) / float(maxi(TENTACLE_COUNT - 1, 1))
+		var fan_angle: float = lerpf(-1.12, 1.12, fan_t)
 		var parent := Node3D.new()
-		parent.position = Vector3(cos(angle) * 0.75, -0.75, sin(angle) * 0.75)
-		parent.rotation.y = -angle
+		parent.position = Vector3(sin(fan_angle) * 0.82, -0.56, -0.74 + absf(fan_angle) * 0.12)
+		parent.rotation.y = fan_angle
+		parent.rotation.x = 0.05 + absf(fan_angle) * 0.03
 		kraken.add_child(parent)
 		tentacle_bases.append(parent)
 
 		var current_parent := parent
 		for s in SEGMENTS_PER_TENTACLE:
 			var joint := Node3D.new()
-			joint.position = Vector3(0.0, -0.54, -0.17)
+			joint.position = Vector3(0.0, -0.045, -0.56)
 			current_parent.add_child(joint)
-
-			var segment := MeshInstance3D.new()
-			var segment_mesh := CapsuleMesh.new()
-			var taper := 1.0 - float(s) / float(SEGMENTS_PER_TENTACLE) * 0.62
-			segment_mesh.radius = 0.22 * taper
-			segment_mesh.height = 0.82
-			segment.mesh = segment_mesh
-			segment.rotation.x = deg_to_rad(17.0)
-			segment.material_override = _material(Color(0.48, 0.11, 0.62), 0.28, 0.08)
-			joint.add_child(segment)
-
 			chain.append(joint)
 			current_parent = joint
+
 		tentacle_segments.append(chain)
+
+		var tube := MeshInstance3D.new()
+		tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		tube.material_override = _material(
+			Color(0.24, 0.045 + 0.012 * float(t % 2), 0.33 + 0.025 * float(t % 2)),
+			0.46,
+			0.02
+		)
+		kraken.add_child(tube)
+		tentacle_visuals.append(tube)
 
 func _build_camera() -> void:
 	camera = Camera3D.new()
 	camera.current = true
-	camera.fov = 68.0
+	camera.fov = 74.0
 	camera.near = 0.08
 	add_child(camera)
 
@@ -297,9 +299,10 @@ func _build_hud() -> void:
 	add_child(layer)
 
 	var title := Label.new()
-	title.text = "KRAKEN // HARBOR TEST BASIN"
-	title.position = Vector2(24, 20)
-	title.add_theme_font_size_override("font_size", 18)
+	title.text = "KRAKEN"
+	title.position = Vector2(26, 22)
+	title.add_theme_font_size_override("font_size", 16)
+	title.modulate = Color(0.72, 0.91, 0.95, 0.78)
 	layer.add_child(title)
 
 	hud_depth = Label.new()
@@ -322,14 +325,14 @@ func _build_hud() -> void:
 	hud_contact.add_theme_font_size_override("font_size", 14)
 	layer.add_child(hud_contact)
 
-	var controls := Label.new()
-	controls.text = "WASD swim   SPACE/CTRL vertical   SHIFT boost   Q grapple   C ghost   E hunt   MOUSE look"
-	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	controls.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	controls.position = Vector2(-260, -42)
-	controls.size = Vector2(520, 30)
-	controls.modulate = Color(1, 1, 1, 0.70)
-	layer.add_child(controls)
+	controls_label = Label.new()
+	controls_label.text = "WASD swim   SHIFT burst   Q grapple   C ghost   E hunt"
+	controls_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	controls_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	controls_label.position = Vector2(-250, -38)
+	controls_label.size = Vector2(500, 28)
+	controls_label.modulate = Color(0.78, 0.91, 0.93, 0.45)
+	layer.add_child(controls_label)
 
 	var dot := Label.new()
 	dot.text = "•"
