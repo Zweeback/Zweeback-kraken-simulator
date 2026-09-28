@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - visual/3d-creature-game
+      - feature/kraken-motor-system-v1
 
 jobs:
   render:
