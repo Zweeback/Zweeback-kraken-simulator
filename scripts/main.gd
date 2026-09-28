@@ -257,7 +257,7 @@ func _build_kraken() -> void:
 	body.mesh = body_mesh
 	body.position = Vector3(0.0, -0.10, -0.28)
 	body.scale = Vector3(1.08, 0.54, 1.02)
-	body.material_override = _material(Color(0.22, 0.045, 0.31), 0.42, 0.03)
+	body.material_override = _kraken_skin(Color(0.31, 0.045, 0.42), Color(0.04, 0.45, 0.62), 0.0)
 	kraken.add_child(body)
 
 	var mantle := MeshInstance3D.new()
@@ -267,7 +267,7 @@ func _build_kraken() -> void:
 	mantle.mesh = mantle_mesh
 	mantle.position = Vector3(0.0, 0.42, 0.78)
 	mantle.scale = Vector3(0.74, 0.62, 1.12)
-	mantle.material_override = _material(Color(0.31, 0.07, 0.40), 0.38, 0.025)
+	mantle.material_override = _kraken_skin(Color(0.40, 0.065, 0.50), Color(0.03, 0.42, 0.58), 0.8)
 	kraken.add_child(mantle)
 
 	var shoulder := MeshInstance3D.new()
@@ -277,7 +277,7 @@ func _build_kraken() -> void:
 	shoulder.mesh = shoulder_mesh
 	shoulder.position = Vector3(0.0, -0.34, -0.70)
 	shoulder.scale = Vector3(1.30, 0.34, 0.95)
-	shoulder.material_override = _material(Color(0.18, 0.035, 0.27), 0.50, 0.02)
+	shoulder.material_override = _kraken_skin(Color(0.27, 0.035, 0.36), Color(0.05, 0.34, 0.52), 1.6)
 	kraken.add_child(shoulder)
 
 	for side in [-1.0, 1.0]:
@@ -324,13 +324,28 @@ func _build_kraken() -> void:
 
 		var tube := MeshInstance3D.new()
 		tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		tube.material_override = _material(
-			Color(0.24, 0.045 + 0.012 * float(t % 2), 0.33 + 0.025 * float(t % 2)),
-			0.46,
-			0.02
+		var phase: float = float(t) * 0.77
+		tube.material_override = _kraken_skin(
+			Color(0.30 + 0.025 * float(t % 2), 0.035, 0.42 + 0.025 * float(t % 3)),
+			Color(0.02, 0.42, 0.58),
+			phase
 		)
 		kraken.add_child(tube)
 		tentacle_visuals.append(tube)
+
+		# Readable sucker rhythm along the underside. These are presentation
+		# geometry only; actual adhesion remains in the contact planner.
+		for s in range(1, chain.size(), 2):
+			var sucker := MeshInstance3D.new()
+			var sucker_mesh := SphereMesh.new()
+			sucker_mesh.radius = maxf(0.055, 0.115 * (1.0 - float(s) / float(chain.size()) * 0.68))
+			sucker_mesh.height = sucker_mesh.radius * 0.48
+			sucker.mesh = sucker_mesh
+			sucker.position = Vector3(0.0, -0.13, -0.24)
+			sucker.scale = Vector3(1.0, 0.42, 1.0)
+			sucker.material_override = _emissive_material(Color(0.44, 0.72, 0.76), 0.42)
+			var sucker_joint: Node3D = chain[s]
+			sucker_joint.add_child(sucker)
 
 func _build_camera() -> void:
 	camera = Camera3D.new()
@@ -530,6 +545,34 @@ func _update_hud() -> void:
 	hud_speed.text = "SPEED  %.1f m/s" % velocity.length()
 	hud_mode.text = "MOTOR  " + motor.intent_name()
 	hud_contact.text = "CONTACT  LOCK" if contact_planner.has_primary_contact() else "CONTACT  SCANNING"
+
+func _kraken_skin(base_color: Color, accent_color: Color, phase: float) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, specular_schlick_ggx;
+
+uniform vec4 base_color : source_color;
+uniform vec4 accent_color : source_color;
+uniform float phase = 0.0;
+
+void fragment() {
+	float bands = 0.5 + 0.5 * sin((VERTEX.x * 4.2 + VERTEX.z * 3.1 + VERTEX.y * 2.3) + phase);
+	float mottled = smoothstep(0.30, 0.78, bands);
+	vec3 skin = mix(base_color.rgb * 0.72, base_color.rgb * 1.16, mottled);
+	float rim = pow(1.0 - max(dot(normalize(NORMAL), normalize(VIEW)), 0.0), 2.4);
+	ALBEDO = skin;
+	ROUGHNESS = 0.34;
+	METALLIC = 0.03;
+	EMISSION = accent_color.rgb * rim * (0.10 + 0.16 * mottled);
+}
+"""
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("base_color", base_color)
+	mat.set_shader_parameter("accent_color", accent_color)
+	mat.set_shader_parameter("phase", phase)
+	return mat
 
 func _material(color: Color, roughness: float, metallic: float) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
