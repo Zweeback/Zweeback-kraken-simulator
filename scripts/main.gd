@@ -324,16 +324,16 @@ func _build_kraken() -> void:
 		var fan_t: float = float(t) / float(maxi(TENTACLE_COUNT - 1, 1))
 		var fan_angle: float = lerpf(-1.12, 1.12, fan_t)
 		var parent := Node3D.new()
-		parent.position = Vector3(sin(fan_angle) * 0.82, -0.56, -0.74 + absf(fan_angle) * 0.12)
+		parent.position = Vector3(sin(fan_angle) * 0.92, -0.50, -0.10 + absf(fan_angle) * 0.16)
 		parent.rotation.y = fan_angle
-		parent.rotation.x = 0.05 + absf(fan_angle) * 0.03
+		parent.rotation.x = -0.06 - absf(fan_angle) * 0.025
 		kraken.add_child(parent)
 		tentacle_bases.append(parent)
 
 		var current_parent := parent
 		for s in SEGMENTS_PER_TENTACLE:
 			var joint := Node3D.new()
-			joint.position = Vector3(0.0, -0.045, -0.56)
+			joint.position = Vector3(0.0, -0.055, 0.50)
 			current_parent.add_child(joint)
 			chain.append(joint)
 			current_parent = joint
@@ -359,7 +359,7 @@ func _build_kraken() -> void:
 			sucker_mesh.radius = maxf(0.055, 0.115 * (1.0 - float(s) / float(chain.size()) * 0.68))
 			sucker_mesh.height = sucker_mesh.radius * 0.48
 			sucker.mesh = sucker_mesh
-			sucker.position = Vector3(0.0, -0.13, -0.24)
+			sucker.position = Vector3(0.0, -0.13, 0.20)
 			sucker.scale = Vector3(1.0, 0.42, 1.0)
 			sucker.material_override = _emissive_material(Color(0.44, 0.72, 0.76), 0.42)
 			var sucker_joint: Node3D = chain[s]
@@ -474,7 +474,7 @@ func _update_player(delta: float) -> void:
 
 func _update_tentacles(delta: float) -> void:
 	var local_velocity: Vector3 = kraken.global_transform.basis.inverse() * velocity
-	var wants_hunt: bool = Input.is_action_pressed("hunt") or capture_demo
+	var wants_hunt: bool = Input.is_action_pressed("hunt")
 	var wants_ghost: bool = Input.is_action_pressed("ghost")
 	var wants_grapple: bool = Input.is_action_pressed("grapple")
 	var aim_direction: Vector3 = -camera.global_transform.basis.z.normalized()
@@ -550,12 +550,12 @@ func _update_camera(delta: float) -> void:
 	var dynamic_distance: float = lerpf(CAMERA_DISTANCE - 0.4, CAMERA_DISTANCE + 0.7, speed_ratio)
 	var horizontal_back := yaw_basis * Vector3(0.0, 0.0, dynamic_distance)
 	var side_offset := yaw_basis * Vector3(0.62, 0.0, 0.0)
-	var desired := kraken.global_position + horizontal_back + side_offset + Vector3(0.0, CAMERA_HEIGHT + 0.75 + pitch * 2.4, 0.0)
+	var desired := kraken.global_position + horizontal_back + side_offset + Vector3(0.0, CAMERA_HEIGHT + 1.15 + pitch * 2.2, 0.0)
 	camera.global_position = camera.global_position.lerp(desired, 1.0 - exp(-8.5 * delta))
 	camera.fov = lerpf(68.0, 76.0, speed_ratio)
 
 	var forward := -kraken.global_transform.basis.z.normalized()
-	var look_target := kraken.global_position + forward * lerpf(2.0, 3.5, speed_ratio) + Vector3(0.0, -0.20, 0.0)
+	var look_target := kraken.global_position + forward * lerpf(4.8, 7.0, speed_ratio) + Vector3(0.0, -0.55, 0.0)
 	camera.look_at(look_target, Vector3.UP)
 
 func _update_hud() -> void:
