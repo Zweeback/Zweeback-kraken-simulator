@@ -74,14 +74,14 @@ func _build_world() -> void:
 	var environment_node := WorldEnvironment.new()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.006, 0.028, 0.045)
+	env.background_color = Color(0.008, 0.050, 0.075)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.055, 0.19, 0.25)
-	env.ambient_light_energy = 0.72
+	env.ambient_light_color = Color(0.075, 0.26, 0.34)
+	env.ambient_light_energy = 1.02
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.025, 0.16, 0.22)
+	env.fog_light_color = Color(0.035, 0.22, 0.30)
 	env.fog_light_energy = 0.95
-	env.fog_density = 0.026
+	env.fog_density = 0.014
 	env.fog_height = 8.0
 	env.fog_height_density = 0.08
 	environment_node.environment = env
@@ -90,21 +90,21 @@ func _build_world() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-58.0, -25.0, 0.0)
 	sun.light_color = Color(0.40, 0.76, 0.92)
-	sun.light_energy = 1.8
+	sun.light_energy = 2.45
 	sun.shadow_enabled = true
 	add_child(sun)
 
 	var fill := OmniLight3D.new()
 	fill.position = Vector3(-2.0, 5.5, -7.0)
 	fill.light_color = Color(0.04, 0.48, 0.68)
-	fill.light_energy = 7.0
+	fill.light_energy = 10.0
 	fill.omni_range = 24.0
 	add_child(fill)
 
 	var rim := OmniLight3D.new()
 	rim.position = Vector3(5.5, 0.5, 1.5)
 	rim.light_color = Color(0.34, 0.05, 0.50)
-	rim.light_energy = 5.2
+	rim.light_energy = 8.0
 	rim.omni_range = 14.0
 	add_child(rim)
 
@@ -113,7 +113,7 @@ func _build_world() -> void:
 	floor_mesh.size = Vector2(110.0, 110.0)
 	floor.mesh = floor_mesh
 	floor.position.y = -8.0
-	floor.material_override = _material(Color(0.025, 0.060, 0.065), 0.94, 0.0)
+	floor.material_override = _material(Color(0.055, 0.085, 0.080), 0.94, 0.0)
 	add_child(floor)
 
 	var floor_body := StaticBody3D.new()
@@ -209,6 +209,24 @@ func _build_scale_props() -> void:
 	cabin.position = Vector3(10.5, 2.55, -32.0)
 	cabin.material_override = _material(Color(0.12, 0.15, 0.15), 0.54, 0.10)
 	add_child(cabin)
+
+	for w in 5:
+		var window := MeshInstance3D.new()
+		var window_mesh := SphereMesh.new()
+		window_mesh.radius = 0.14
+		window_mesh.height = 0.28
+		window.mesh = window_mesh
+		window.position = Vector3(8.9 + float(w) * 0.8, 2.75, -29.8)
+		window.scale = Vector3(1.35, 0.55, 0.28)
+		window.material_override = _emissive_material(Color(1.0, 0.48, 0.14), 2.4)
+		add_child(window)
+
+	var ship_glow := OmniLight3D.new()
+	ship_glow.position = Vector3(10.5, 1.8, -27.5)
+	ship_glow.light_color = Color(1.0, 0.34, 0.10)
+	ship_glow.light_energy = 4.5
+	ship_glow.omni_range = 10.0
+	add_child(ship_glow)
 
 	# Tiny suspended lights/particles give scale and depth in the capture.
 	for i in 18:
@@ -350,7 +368,7 @@ func _build_kraken() -> void:
 func _build_camera() -> void:
 	camera = Camera3D.new()
 	camera.current = true
-	camera.fov = 74.0
+	camera.fov = 70.0
 	camera.near = 0.08
 	add_child(camera)
 
@@ -529,15 +547,15 @@ func _apply_tentacle_separation() -> void:
 func _update_camera(delta: float) -> void:
 	var speed_ratio: float = clampf(velocity.length() / GRAPPLE_MAX_SPEED, 0.0, 1.0)
 	var yaw_basis := Basis(Vector3.UP, yaw)
-	var dynamic_distance: float = lerpf(CAMERA_DISTANCE + 0.8, CAMERA_DISTANCE + 1.8, speed_ratio)
+	var dynamic_distance: float = lerpf(CAMERA_DISTANCE - 0.4, CAMERA_DISTANCE + 0.7, speed_ratio)
 	var horizontal_back := yaw_basis * Vector3(0.0, 0.0, dynamic_distance)
-	var side_offset := yaw_basis * Vector3(0.85, 0.0, 0.0)
+	var side_offset := yaw_basis * Vector3(0.62, 0.0, 0.0)
 	var desired := kraken.global_position + horizontal_back + side_offset + Vector3(0.0, CAMERA_HEIGHT + 0.75 + pitch * 2.4, 0.0)
 	camera.global_position = camera.global_position.lerp(desired, 1.0 - exp(-8.5 * delta))
-	camera.fov = lerpf(72.0, 80.0, speed_ratio)
+	camera.fov = lerpf(68.0, 76.0, speed_ratio)
 
 	var forward := -kraken.global_transform.basis.z.normalized()
-	var look_target := kraken.global_position + forward * lerpf(2.6, 4.5, speed_ratio) + Vector3(0.0, -0.35, 0.0)
+	var look_target := kraken.global_position + forward * lerpf(2.0, 3.5, speed_ratio) + Vector3(0.0, -0.20, 0.0)
 	camera.look_at(look_target, Vector3.UP)
 
 func _update_hud() -> void:
@@ -545,6 +563,12 @@ func _update_hud() -> void:
 	hud_speed.text = "SPEED  %.1f m/s" % velocity.length()
 	hud_mode.text = "MOTOR  " + motor.intent_name()
 	hud_contact.text = "CONTACT  LOCK" if contact_planner.has_primary_contact() else "CONTACT  SCANNING"
+	if capture_demo:
+		hud_depth.visible = false
+		hud_speed.visible = false
+		hud_mode.visible = false
+		hud_contact.visible = false
+		controls_label.visible = false
 
 func _kraken_skin(base_color: Color, accent_color: Color, phase: float) -> ShaderMaterial:
 	var shader := Shader.new()
